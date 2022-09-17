@@ -4,7 +4,7 @@ setup() {
 }
 
 teardown() {
-    rm -rf dump.rdb
+    rm -rf *.rdb
 }
 
 @test "save and load" {
