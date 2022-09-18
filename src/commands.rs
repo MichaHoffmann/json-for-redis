@@ -1,7 +1,6 @@
-use redis_module::raw::KeyType;
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue, REDIS_OK};
 
-use jsonpath_rust::JsonPathQuery;
+use jsonpath_lib::{replace_with, select};
 use serde_json::{from_str, json, to_string, Value};
 
 use std::collections::HashMap;
@@ -23,12 +22,12 @@ pub fn redis_json_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 
     let res = match paths.len() {
-        1 => jsn.clone().path(&paths[0].to_string()),
+        1 => Ok(json!(select(jsn, &paths[0].to_string()).unwrap())),
         _ => {
             let mut m = HashMap::new();
             for path in paths {
                 let pp = path.to_string();
-                match jsn.clone().path(&pp) {
+                match select(jsn, &pp) {
                     Ok(v) => m.insert(pp, v),
                     Err(_) => None,
                 };
@@ -55,18 +54,18 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
     let jsn: Value = from_str(&val)?;
 
-    // TODO: we only allow setting a nonexisting key at the root for now
-    if path != "$" {
-        return Err(RedisError::Str("TODO: CAN ONLY WRITE AT $"));
-    }
-
     let key_ptr = ctx.open_key_writable(&key);
+    let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
+    let cur = match key_value {
+        Some(v) => v,
+        None => {
+            key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
+            return REDIS_OK;
+        }
+    };
 
-    // TODO: modify this: let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
-    // for now we only allow setting a nonexisting key
-    if key_ptr.key_type() != KeyType::Empty {
-        return Err(RedisError::Str("TODO: CANNOT NOT SET PREEXISTING KEY"));
-    }
-    key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
+    let res = replace_with(cur.clone(), &path.to_string(), &mut |_| Some(jsn.clone()))?;
+
+    key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
     return REDIS_OK;
 }

@@ -8,6 +8,11 @@ setup() {
     assert_output "ERR wrong number of arguments for 'json.get' command"
 }
 
+@test "json.get - bad path" {
+    run redis-cli json.get x $$$
+    assert_output ""
+}
+
 @test "json.get - key does not exist" {
     KEY=$(uuid)
 
@@ -54,4 +59,20 @@ setup() {
     run redis-cli json.get $KEY \$.b \$.a
     assert_output --partial '"$.a":[1]'
     assert_output --partial '"$.b":[2]'
+}
+
+@test "json.set - update inner key" {
+    KEY=$(uuid)
+
+    run redis-cli json.set $KEY \$ '{"a":1,"b":2}'
+    assert_output "OK"
+
+    run redis-cli json.get $KEY \$
+    assert_output '[{"a":1,"b":2}]'
+
+    run redis-cli json.set $KEY \$.a '[]'
+    assert_output "OK"
+
+    run redis-cli json.get $KEY \$
+    assert_output '[{"a":[],"b":2}]'
 }
