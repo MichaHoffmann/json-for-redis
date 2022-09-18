@@ -42,7 +42,7 @@ pub fn redis_json_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 }
 
-// TODO: support for updating existing keys
+// TODO: support for nx or xx logic
 pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
 
@@ -56,6 +56,7 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
     let key_ptr = ctx.open_key_writable(&key);
     let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
+
     let cur = match key_value {
         Some(v) => v,
         None => {
@@ -63,7 +64,6 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             return REDIS_OK;
         }
     };
-
     let res = replace_with(cur.clone(), &path.to_string(), &mut |_| Some(jsn.clone()))?;
 
     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
