@@ -52,20 +52,20 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     // TODO: let nx_or_xx = args.next_string()?;
     args.done()?;
 
-    let jsn: Value = from_str(&val)?;
-
     let key_ptr = ctx.open_key_writable(&key);
     let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
+    let jsn = from_str::<Value>(&val)?;
 
-    let cur = match key_value {
-        Some(v) => v,
+    match key_value {
+        Some(v) => {
+            let res = replace_with(v.clone(), &path.to_string(), &mut |_| Some(jsn.clone()))?;
+
+            key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
+            return REDIS_OK;
+        }
         None => {
             key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
             return REDIS_OK;
         }
     };
-    let res = replace_with(cur.clone(), &path.to_string(), &mut |_| Some(jsn.clone()))?;
-
-    key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
-    return REDIS_OK;
 }
