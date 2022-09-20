@@ -22,7 +22,14 @@ pub fn redis_json_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 
     let res = match paths.len() {
-        1 => Ok(json!(select(jsn, &paths[0].to_string()).unwrap())),
+        0 => match select(jsn, "$")?.pop() {
+            Some(v) => Ok(json!(v)),
+            None => return Ok(RedisValue::Null),
+        },
+        1 => match select(jsn, &paths[0].to_string()) {
+            Ok(v) => Ok(json!(v)),
+            Err(_) => return Ok(RedisValue::Null),
+        },
         _ => {
             let mut m = HashMap::new();
             for path in paths {
@@ -42,7 +49,7 @@ pub fn redis_json_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 }
 
-// TODO: support for nx or xx logic
+// TODO: support for nx or xx logic, jsonpath errors
 pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
 
@@ -68,4 +75,52 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             return REDIS_OK;
         }
     };
+}
+
+pub fn redis_json_type(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    let mut args = args.into_iter().skip(1);
+
+    let key = args.next_arg()?;
+    let path = match args.next_string() {
+        Ok(v) => v.to_string(),
+        Err(_) => "$".to_string(),
+    };
+
+    let key_ptr = ctx.open_key_writable(&key);
+    let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
+    let jsn = match key_value {
+        Some(v) => v,
+        None => return Ok(RedisValue::Null),
+    };
+    let matches = match select(jsn, &path) {
+        Ok(v) => v,
+        Err(_) => return Ok(RedisValue::Null),
+    };
+    if matches.is_empty() {
+        return Ok(RedisValue::Null);
+    }
+    let mut res: Vec<RedisValue> = Vec::new();
+    for m in matches {
+        let t = {
+            if m.is_f64() {
+                "number"
+            } else if m.is_i64() || m.is_u64() {
+                "integer"
+            } else if m.is_string() {
+                "string"
+            } else if m.is_boolean() {
+                "boolean"
+            } else if m.is_null() {
+                "null"
+            } else if m.is_array() {
+                "array"
+            } else if m.is_object() {
+                "object"
+            } else {
+                "undefined"
+            }
+        };
+        res.push(RedisValue::SimpleStringStatic(t));
+    }
+    return Ok(RedisValue::Array(res));
 }

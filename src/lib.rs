@@ -4,7 +4,7 @@ extern crate redis_module;
 mod commands;
 mod rejson;
 
-use commands::{redis_json_get, redis_json_set};
+use commands::{redis_json_get, redis_json_set, redis_json_type};
 use rejson::REDIS_JSON_TYPE;
 
 redis_module! {
@@ -14,5 +14,6 @@ redis_module! {
     commands: [
         ["json.get", redis_json_get, "readonly", 0, 0, 0],
         ["json.set", redis_json_set, "write deny-oom", 0, 0, 0],
+        ["json.type", redis_json_type, "readonly", 0, 0, 0],
     ],
 }
