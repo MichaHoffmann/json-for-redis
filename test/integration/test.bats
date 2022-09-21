@@ -4,12 +4,12 @@ setup() {
 }
 
 rcli() {
-  redis-cli -p $PORT $@
+  redis-cli --no-raw -p $PORT $@
 }
 
 @test "json.get - bad args - wrong arity" {
     run rcli json.get
-    assert_output "ERR wrong number of arguments for 'json.get' command"
+    assert_output "(error) ERR wrong number of arguments for 'json.get' command"
 }
 
 @test "json.get - bad args - value not json type" {
@@ -19,7 +19,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$
-    assert_output "Existing key has wrong Redis type"
+    assert_output "(error) Existing key has wrong Redis type"
 }
 
 @test "json.get - bad path" {
@@ -29,14 +29,14 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get x \$...\$\$
-    assert_output ""
+    assert_output "(nil)"
 }
 
 @test "json.get - key does not exist" {
     KEY=$(uuid)
 
     run rcli json.get $KEY \$
-    assert_output ""
+    assert_output "(nil)"
 }
 
 @test "json.get - simple get" {
@@ -46,7 +46,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$.a.b[0]
-    assert_output '["c"]'
+    assert_output '"[\"c\"]"'
 }
 
 @test "json.get - no path" {
@@ -56,7 +56,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY
-    assert_output '"foo"'
+    assert_output '"\"foo\""'
 }
 
 @test "json.get - value is not matched" {
@@ -66,7 +66,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$.a.b.c
-    assert_output '[]'
+    assert_output '"[]"'
 }
 
 @test "json.get - recursive decent" {
@@ -76,7 +76,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$..a
-    assert_output "[1,2]"
+    assert_output '"[1,2]"'
 }
 
 @test "json.get - multiple paths" {
@@ -86,8 +86,8 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$.b \$.a
-    assert_output --partial '"$.a":[1]'
-    assert_output --partial '"$.b":[2]'
+    assert_output --partial '\"$.a\":[1]'
+    assert_output --partial '\"$.b\":[2]'
 }
 
 @test "json.get - multiple paths, some are bad" {
@@ -97,21 +97,21 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$.a \$\$
-    assert_output '{"$.a":[1]}'
+    assert_output '"{\"$.a\":[1]}"'
 }
 
 @test "json.set - bad args - wrong arity - no path" {
     KEY=$(uuid)
 
     run rcli json.set $KEY '"a"'
-    assert_output "ERR wrong number of arguments for 'json.set' command"
+    assert_output "(error) ERR wrong number of arguments for 'json.set' command"
 }
 
 @test "json.set - bad args - wrong arity - no value" {
     KEY=$(uuid)
 
     run rcli json.set $KEY \$
-    assert_output "ERR wrong number of arguments for 'json.set' command"
+    assert_output "(error) ERR wrong number of arguments for 'json.set' command"
 }
 
 @test "json.set - bad args - existing key no json" {
@@ -121,7 +121,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.set $KEY \$ "\"a\""
-    assert_output "Existing key has wrong Redis type"
+    assert_output "(error) Existing key has wrong Redis type"
 }
 
 @test "json.set - update inner key - simple" {
@@ -134,7 +134,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$
-    assert_output '[{"a":[],"b":2}]'
+    assert_output '"[{\"a\":[],\"b\":2}]"'
 }
 
 @test "json.set - update inner key - recursive decent" {
@@ -147,7 +147,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.get $KEY \$
-    assert_output '[{"a":{"c":2},"b":{"c":2}}]'
+    assert_output '"[{\"a\":{\"c\":2},\"b\":{\"c\":2}}]"'
 }
 
 @test "json.type - string" {
@@ -157,7 +157,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "string"
+    assert_output '"string"'
 }
 
 @test "json.type - integer" {
@@ -167,7 +167,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "integer"
+    assert_output '"integer"'
 }
 
 @test "json.type - number" {
@@ -177,7 +177,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "number"
+    assert_output '"number"'
 }
 
 @test "json.type - array" {
@@ -187,7 +187,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "array"
+    assert_output '"array"'
 }
 
 @test "json.type - object" {
@@ -197,7 +197,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "object"
+    assert_output '"object"'
 }
 
 @test "json.type - boolean" {
@@ -207,7 +207,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "boolean"
+    assert_output '"boolean"'
 }
 
 @test "json.type - null" {
@@ -217,7 +217,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "null"
+    assert_output '"null"'
 }
 
 @test "json.type - negative integer" {
@@ -227,7 +227,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY
-    assert_output "integer"
+    assert_output '"integer"'
 }
 
 @test "json.type - nested - simple match" {
@@ -237,7 +237,7 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY \$.a
-    assert_output "integer"
+    assert_output '1) "integer"'
 }
 
 @test "json.type - nested - recursive decent" {
@@ -247,8 +247,8 @@ rcli() {
     assert_output "OK"
 
     run rcli json.type $KEY \$..a
-    assert_output "integer
-array"
+    assert_output '1) "integer"
+2) "array"'
 }
 
 @test "json.type - nested - no match" {
@@ -258,5 +258,5 @@ array"
     assert_output "OK"
 
     run rcli json.type $KEY \$.c
-    assert_output ""
+    assert_output "(empty array)"
 }

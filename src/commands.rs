@@ -44,7 +44,7 @@ pub fn redis_json_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 
     return match res {
-        Ok(v) => Ok(RedisValue::SimpleString(to_string(&v).unwrap())),
+        Ok(v) => Ok(RedisValue::SimpleString(to_quoted(&to_string(&v).unwrap()))),
         Err(e) => Err(RedisError::String(e)),
     };
 }
@@ -66,15 +66,13 @@ pub fn redis_json_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     match key_value {
         Some(v) => {
             let res = replace_with(v.clone(), &path.to_string(), &mut |_| Some(jsn.clone()))?;
-
             key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
-            return REDIS_OK;
         }
         None => {
             key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
-            return REDIS_OK;
         }
     };
+    return REDIS_OK;
 }
 
 pub fn redis_json_type(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -96,31 +94,46 @@ pub fn redis_json_type(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         Ok(v) => v,
         Err(_) => return Ok(RedisValue::Null),
     };
-    if matches.is_empty() {
-        return Ok(RedisValue::Null);
+
+    if path == "$" {
+        let v = unsafe { matches.get_unchecked(0) };
+        return Ok(RedisValue::SimpleString(to_quoted(&json_type(v))));
     }
-    let mut res: Vec<RedisValue> = Vec::new();
-    for m in matches {
-        let t = {
-            if m.is_f64() {
-                "number"
-            } else if m.is_i64() || m.is_u64() {
-                "integer"
-            } else if m.is_string() {
-                "string"
-            } else if m.is_boolean() {
-                "boolean"
-            } else if m.is_null() {
-                "null"
-            } else if m.is_array() {
-                "array"
-            } else if m.is_object() {
-                "object"
-            } else {
-                "undefined"
-            }
-        };
-        res.push(RedisValue::SimpleStringStatic(t));
-    }
-    return Ok(RedisValue::Array(res));
+    return Ok(RedisValue::Array(
+        matches
+            .iter()
+            .map(|v| to_quoted(&json_type(v)))
+            .map(|v| RedisValue::SimpleString(v))
+            .collect(),
+    ));
+}
+
+fn to_quoted(s: &String) -> String {
+    let mut r = s.replace("\"", "\\\"");
+    r.insert_str(0, "\"");
+    r.insert_str(r.len(), "\"");
+    return r;
+}
+
+fn json_type(m: &Value) -> String {
+    let r = {
+        if m.is_f64() {
+            "number"
+        } else if m.is_i64() || m.is_u64() {
+            "integer"
+        } else if m.is_string() {
+            "string"
+        } else if m.is_boolean() {
+            "boolean"
+        } else if m.is_null() {
+            "null"
+        } else if m.is_array() {
+            "array"
+        } else if m.is_object() {
+            "object"
+        } else {
+            "undefined"
+        }
+    };
+    return r.to_owned();
 }
