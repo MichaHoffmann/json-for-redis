@@ -5,9 +5,8 @@ mod command_redis_json_get;
 mod command_redis_json_set;
 mod command_redis_json_type;
 mod rejson;
-mod util;
 
-use rejson::REDIS_JSON_TYPE;
+use crate::rejson::REDIS_JSON_TYPE;
 
 redis_module! {
     name: "json",

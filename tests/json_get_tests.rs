@@ -25,7 +25,7 @@ fn simple(ctx: &mut Ctx) {
             .arg("$.a.b[0]")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[\"c\"]""#.to_string())
+        redis::Value::Data(r#"["c"]"#.as_bytes().to_vec())
     );
 }
 
@@ -51,7 +51,7 @@ fn recursive_decent(ctx: &mut Ctx) {
             .arg("$..a")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[1,2]""#.to_string())
+        redis::Value::Data("[1,2]".as_bytes().to_vec())
     );
 }
 
@@ -77,7 +77,7 @@ fn no_value_matched_at_path(ctx: &mut Ctx) {
             .arg("$.a")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[]""#.to_string())
+        redis::Value::Data("[]".as_bytes().to_vec())
     );
 }
 
@@ -102,7 +102,7 @@ fn no_path_returns_value_at_root(ctx: &mut Ctx) {
             .arg(key.clone())
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""1""#.to_string())
+        redis::Value::Data("1".as_bytes().to_vec())
     );
 }
 
@@ -129,7 +129,7 @@ fn multiple_paths_some_are_bad(ctx: &mut Ctx) {
             .arg("$$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""{\"$.a\":[1]}""#.to_string())
+        redis::Value::Data(r#"{"$.a":[1]}"#.as_bytes().to_vec())
     );
 }
 
@@ -155,9 +155,10 @@ fn multiple_paths(ctx: &mut Ctx) {
         .arg("$.b")
         .query::<redis::Value>(&mut con)
         .expect("json get failed");
-    if let redis::Value::Status(res) = out {
-        assert!(res.contains(r#"\"$.a\":[1]"#));
-        assert!(res.contains(r#"\"$.b\":[2]"#));
+    if let redis::Value::Data(res) = out {
+        let s = String::from_utf8(res).expect("decoding utf8 failed");
+        assert!(s.contains(r#""$.a":[1]"#));
+        assert!(s.contains(r#""$.b":[2]"#));
     } else {
         panic!("expected redis value");
     };

@@ -1,5 +1,4 @@
 use crate::rejson::REDIS_JSON_TYPE;
-use crate::util::to_quoted;
 use jsonpath_lib::select;
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 use serde_json::{json, to_string, Value};
@@ -41,7 +40,9 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 
     return match res {
-        Ok(v) => Ok(RedisValue::SimpleString(to_quoted(&to_string(&v).unwrap()))),
+        Ok(v) => Ok(RedisValue::StringBuffer(
+            to_string(&v).unwrap().as_bytes().to_vec(),
+        )),
         Err(e) => Err(RedisError::String(e)),
     };
 }

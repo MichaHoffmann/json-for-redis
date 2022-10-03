@@ -75,7 +75,7 @@ fn existing_key_set_at_root(ctx: &mut Ctx) {
             .arg(key.clone())
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""\"b\"""#.to_string())
+        redis::Value::Data(r#""b""#.as_bytes().to_vec())
     );
 }
 
@@ -104,7 +104,7 @@ fn existing_key_set_inner_key(ctx: &mut Ctx) {
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[{\"a\":[],\"b\":2}]""#.to_string())
+        redis::Value::Data(r#"[{"a":[],"b":2}]"#.as_bytes().to_vec())
     );
 }
 
@@ -133,7 +133,7 @@ fn existing_key_recursive_decent(ctx: &mut Ctx) {
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[{\"a\":{\"c\":2},\"b\":{\"c\":2}}]""#.to_string())
+        redis::Value::Data(r#"[{"a":{"c":2},"b":{"c":2}}]"#.as_bytes().to_vec())
     );
 }
 
@@ -162,7 +162,7 @@ fn existing_key_adding_new_key_to_object(ctx: &mut Ctx) {
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[{\"a\":2,\"b\":8}]""#.to_string())
+        redis::Value::Data(r#"[{"a":2,"b":8}]"#.as_bytes().to_vec())
     );
 }
 
@@ -232,7 +232,7 @@ fn xx_key_does_exist(ctx: &mut Ctx) {
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Status(r#""[\"bar\"]""#.to_string())
+        redis::Value::Data(r#"["bar"]"#.as_bytes().to_vec())
     );
 }
 

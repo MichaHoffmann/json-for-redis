@@ -1,5 +1,4 @@
 use crate::rejson::REDIS_JSON_TYPE;
-use crate::util::to_quoted;
 use jsonpath_lib::select;
 use redis_module::{Context, NextArg, RedisResult, RedisString, RedisValue};
 use serde_json::Value;
@@ -27,13 +26,13 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
     if path == "$" {
         let v = unsafe { matches.get_unchecked(0) };
-        return Ok(RedisValue::SimpleString(to_quoted(&json_type(v))));
+        return Ok(RedisValue::StringBuffer(json_type(v).as_bytes().to_vec()));
     }
     return Ok(RedisValue::Array(
         matches
             .iter()
-            .map(|v| to_quoted(&json_type(v)))
-            .map(|v| RedisValue::SimpleString(v))
+            .map(|v| json_type(v).as_bytes().to_vec())
+            .map(|v| RedisValue::StringBuffer(v))
             .collect(),
     ));
 }

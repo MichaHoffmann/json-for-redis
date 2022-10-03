@@ -22,50 +22,50 @@ fn test_type_simple(ctx: &mut Ctx, val: &str, expect: &str) {
             .arg(key.clone())
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
-        redis::Value::Status(expect.to_string())
+        redis::Value::Data(expect.as_bytes().to_vec())
     );
 }
 
 #[test_context(Ctx)]
 #[test]
 fn string(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#""foo""#, r#""string""#);
+    test_type_simple(ctx, r#""foo""#, "string");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn integer(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"1"#, r#""integer""#);
+    test_type_simple(ctx, "1", "integer");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn number(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"1e-6"#, r#""number""#);
+    test_type_simple(ctx, "1e-6", "number");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn array(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"[]"#, r#""array""#);
+    test_type_simple(ctx, "[]", "array");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn object(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"{}"#, r#""object""#);
+    test_type_simple(ctx, "{}", "object");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn boolean(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"true"#, r#""boolean""#);
+    test_type_simple(ctx, "true", "boolean");
 }
 
 #[test_context(Ctx)]
 #[test]
 fn negative_integer(ctx: &mut Ctx) {
-    test_type_simple(ctx, r#"-1"#, r#""integer""#);
+    test_type_simple(ctx, "-1", "integer");
 }
 
 #[test_context(Ctx)]
@@ -90,7 +90,7 @@ fn nested_simple_match(ctx: &mut Ctx) {
             .arg("$.a")
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
-        redis::Value::Bulk(vec!(redis::Value::Status(r#""integer""#.to_string())))
+        redis::Value::Bulk(vec!(redis::Value::Data("integer".as_bytes().to_vec())))
     );
 }
 
@@ -117,8 +117,8 @@ fn nested_recursive_decent(ctx: &mut Ctx) {
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
         redis::Value::Bulk(vec!(
-            redis::Value::Status(r#""integer""#.to_string()),
-            redis::Value::Status(r#""array""#.to_string()),
+            redis::Value::Data("integer".as_bytes().to_vec()),
+            redis::Value::Data("array".as_bytes().to_vec()),
         ))
     );
 }
