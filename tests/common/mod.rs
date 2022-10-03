@@ -27,7 +27,8 @@ impl Ctx {
 }
 
 fn get_random_port() -> Option<u16> {
-    let _lock = MUX.lock().expect("unable to lock setup");
+    let _lock = MUX.lock().expect("unable to lock port selection");
+
     rand::thread_rng()
         .sample_iter(Uniform::new(10000, 40000))
         .find(|port| port_is_available(*port))
@@ -40,7 +41,6 @@ fn port_is_available(port: u16) -> bool {
     }
 }
 
-// FIX: this assumes that the library is located at "librejson.so"
 impl TestContext for Ctx {
     fn setup() -> Ctx {
         let port = get_random_port().unwrap_or(PORT);
