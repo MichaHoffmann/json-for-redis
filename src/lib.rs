@@ -1,10 +1,12 @@
 #[macro_use]
 extern crate redis_module;
 
-mod commands;
+mod command_redis_json_get;
+mod command_redis_json_set;
+mod command_redis_json_type;
 mod rejson;
+mod util;
 
-use commands::{redis_json_get, redis_json_set, redis_json_type};
 use rejson::REDIS_JSON_TYPE;
 
 redis_module! {
@@ -12,8 +14,8 @@ redis_module! {
     version: 1,
     data_types: [REDIS_JSON_TYPE],
     commands: [
-        ["json.get", redis_json_get, "readonly", 0, 0, 0],
-        ["json.set", redis_json_set, "write deny-oom", 0, 0, 0],
-        ["json.type", redis_json_type, "readonly", 0, 0, 0],
+        ["json.get", command_redis_json_get::cmd, "readonly", 0, 0, 0],
+        ["json.set", command_redis_json_set::cmd, "write deny-oom", 0, 0, 0],
+        ["json.type", command_redis_json_type::cmd, "readonly", 0, 0, 0],
     ],
 }
