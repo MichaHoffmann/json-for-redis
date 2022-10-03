@@ -10,15 +10,12 @@ fn simple(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg(r#"{"a":{"b":["c"]}}"#)
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":{"b":["c"]}}"#)
+        .execute(&mut con);
+
     assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key.clone())
@@ -36,15 +33,12 @@ fn recursive_decent(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg(r#"{"x":{"a":1},"y":{"a":2}}"#)
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"x":{"a":1},"y":{"a":2}}"#)
+        .execute(&mut con);
+
     assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key.clone())
@@ -62,15 +56,12 @@ fn no_value_matched_at_path(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg("1")
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg("1")
+        .execute(&mut con);
+
     assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key.clone())
@@ -88,15 +79,12 @@ fn no_path_returns_value_at_root(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg("1")
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg("1")
+        .execute(&mut con);
+
     assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key.clone())
@@ -113,15 +101,12 @@ fn multiple_paths_some_are_bad(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg(r#"{"a":1,"b":2}"#)
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":1,"b":2}"#)
+        .execute(&mut con);
+
     assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key.clone())
@@ -140,15 +125,12 @@ fn multiple_paths(ctx: &mut Ctx) {
 
     let key = random_key(16);
 
-    assert_eq!(
-        redis::cmd("JSON.SET")
-            .arg(key.clone())
-            .arg("$")
-            .arg(r#"{"a":1,"b":2}"#)
-            .query::<redis::Value>(&mut con)
-            .expect("json set failed"),
-        redis::Value::Okay
-    );
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":1,"b":2}"#)
+        .execute(&mut con);
+
     let out = redis::cmd("JSON.GET")
         .arg(key.clone())
         .arg("$.a")
