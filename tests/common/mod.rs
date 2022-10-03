@@ -8,8 +8,6 @@ use std::sync::Mutex;
 use std::{thread, time};
 use test_context::TestContext;
 
-static PORT: u16 = 6371;
-
 static MUX: Mutex<i32> = Mutex::new(0);
 
 pub struct Ctx {
@@ -26,24 +24,9 @@ impl Ctx {
     }
 }
 
-fn get_random_port() -> Option<u16> {
-    let _lock = MUX.lock().expect("unable to lock port selection");
-
-    rand::thread_rng()
-        .sample_iter(Uniform::new(10000, 40000))
-        .find(|port| port_is_available(*port))
-}
-
-fn port_is_available(port: u16) -> bool {
-    match TcpListener::bind(("127.0.0.1", port)) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
-}
-
 impl TestContext for Ctx {
     fn setup() -> Ctx {
-        let port = get_random_port().unwrap_or(PORT);
+        let port = get_random_port();
         let module = env::var("REDIS_JSON_MODULE").expect("REDIS_JSON_MODULE not set");
         let ctx = Ctx {
             redis: Command::new("redis-server")
@@ -69,6 +52,22 @@ impl TestContext for Ctx {
     fn teardown(mut self) {
         self.redis.kill().expect("killing redis failed");
         self.redis.wait().expect("waiting redis failed");
+    }
+}
+
+fn get_random_port() -> u16 {
+    let _lock = MUX.lock().expect("unable to lock port selection");
+
+    return rand::thread_rng()
+        .sample_iter(Uniform::new(10000, 40000))
+        .find(|port| port_is_available(*port))
+        .unwrap();
+}
+
+fn port_is_available(port: u16) -> bool {
+    match TcpListener::bind(("127.0.0.1", port)) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
