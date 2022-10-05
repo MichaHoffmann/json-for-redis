@@ -1,0 +1,21 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.0.1
+  hooks:
+  - id: trailing-whitespace
+  - id: mixed-line-ending
+- repo: local
+  hooks:
+  - id: fmt
+    name: fmt
+    language: system
+    types: [file, rust]
+    entry: cargo fmt -- --check
+    pass_filenames: false
+
+  - id: clippy
+    name: clippy
+    language: system
+    types: [file, rust]
+    entry: cargo clippy --bins --tests --examples --all -- -D warnings
+    pass_filenames: false

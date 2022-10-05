@@ -6,5 +6,5 @@ A WIP Clone of [RedisJSON](https://redis.io/docs/stack/json/).
 
 Fedora:
 ```
-dnf -y install rust cargo redis
+dnf -y install rust cargo redis pre-commit
 ```
