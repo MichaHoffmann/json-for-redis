@@ -12,10 +12,16 @@ repos:
     types: [file, rust]
     entry: cargo fmt -- --check
     pass_filenames: false
-
   - id: clippy
     name: clippy
     language: system
     types: [file, rust]
     entry: cargo clippy --bins --tests --examples --all -- -D warnings
     pass_filenames: false
+  - id: test
+    name: test
+    language: system
+    types: [file, rust]
+    entry: sh -c "cargo build && REDIS_JSON_MODULE=target/debug/librejson.so cargo test"
+    pass_filenames: false
+    stages: [push]
