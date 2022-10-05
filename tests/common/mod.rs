@@ -40,7 +40,7 @@ impl TestContext for Ctx {
         };
 
         loop {
-            if let Ok(_) = ctx.client.get_connection() {
+            if ctx.client.get_connection().is_ok() {
                 break;
             }
             thread::sleep(time::Duration::from_millis(100));
@@ -59,15 +59,8 @@ fn get_random_port() -> u16 {
 
     rand::thread_rng()
         .sample_iter(Uniform::new(10000, 40000))
-        .find(|port| port_is_available(*port))
+        .find(|port| TcpListener::bind(("127.0.0.1", *port)).is_ok())
         .unwrap()
-}
-
-fn port_is_available(port: u16) -> bool {
-    match TcpListener::bind(("127.0.0.1", port)) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
 }
 
 pub fn random_key(size: usize) -> String {
