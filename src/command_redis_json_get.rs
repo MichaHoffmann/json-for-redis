@@ -5,26 +5,27 @@ use serde::ser::Serialize;
 use serde_json::ser::{Formatter, Serializer};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::io;
 
 pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1).peekable();
 
     let key = args.next_arg()?;
 
-    let mut fmt = Fmt::new();
+    let mut fmt = CustomFormatter::new();
     while let Some(s) = args.peek() {
         match s.to_string().as_str() {
             "INDENT" => {
                 args.next_arg()?;
-                fmt._indent = args.next_string()?;
+                fmt.indent = args.next_string()?;
             }
             "NEWLINE" => {
                 args.next_arg()?;
-                fmt._newline = args.next_string()?;
+                fmt.newline = args.next_string()?;
             }
             "SPACE" => {
                 args.next_arg()?;
-                fmt._space = args.next_string()?;
+                fmt.space = args.next_string()?;
             }
             _ => {
                 break;
@@ -72,42 +73,48 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
 }
 
-pub struct Fmt {
-    _current_indent: usize,
-    _has_value: bool,
-    _indent: String,
-    _newline: String,
-    _space: String,
+pub struct CustomFormatter {
+    indent: String,
+    newline: String,
+    space: String,
+    current_indent: usize,
+    has_value: bool,
 }
 
-impl Fmt {
-    fn new() -> Fmt {
-        Fmt {
-            _current_indent: 0,
-            _has_value: false,
-            _indent: String::new(),
-            _newline: String::new(),
-            _space: String::new(),
+impl CustomFormatter {
+    fn new() -> CustomFormatter {
+        CustomFormatter {
+            indent: String::new(),
+            newline: String::new(),
+            space: String::new(),
+            current_indent: 0,
+            has_value: false,
         }
     }
 }
 
-impl Formatter for Fmt {}
-/*
+// basically https://docs.rs/serde_json/latest/src/serde_json/ser.rs.html#1957
+impl Formatter for CustomFormatter {
     #[inline]
     fn begin_array<W>(&mut self, writer: &mut W) -> io::Result<()>
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        self.current_indent += 1;
+        self.has_value = false;
+        writer.write_all(b"[")
     }
-
     #[inline]
     fn end_array<W>(&mut self, writer: &mut W) -> io::Result<()>
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        self.current_indent -= 1;
+        if self.has_value {
+            writer.write_all(self.newline.as_bytes())?;
+            writer.write_all(self.indent.repeat(self.current_indent).as_bytes())?;
+        }
+        writer.write_all(b"]")
     }
 
     #[inline]
@@ -115,7 +122,13 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        if first {
+            writer.write_all(self.newline.as_bytes())?;
+        } else {
+            writer.write_all(b",")?;
+            writer.write_all(self.newline.as_bytes())?;
+        }
+        writer.write_all(self.indent.repeat(self.current_indent).as_bytes())
     }
 
     #[inline]
@@ -123,6 +136,7 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
+        self.has_value = true;
         Ok(())
     }
 
@@ -131,7 +145,9 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        self.current_indent += 1;
+        self.has_value = false;
+        writer.write_all(b"{")
     }
 
     #[inline]
@@ -139,7 +155,12 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        self.current_indent -= 1;
+        if self.has_value {
+            writer.write_all(self.newline.as_bytes())?;
+            writer.write_all(self.indent.repeat(self.current_indent).as_bytes())?;
+        }
+        writer.write_all(b"}")
     }
 
     #[inline]
@@ -147,7 +168,13 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        if first {
+            writer.write_all(self.newline.as_bytes())?;
+        } else {
+            writer.write_all(b",")?;
+            writer.write_all(self.newline.as_bytes())?;
+        }
+        writer.write_all(self.indent.repeat(self.current_indent).as_bytes())
     }
 
     #[inline]
@@ -155,15 +182,15 @@ impl Formatter for Fmt {}
     where
         W: ?Sized + io::Write,
     {
-        Ok(())
+        writer.write_all(b":")?;
+        writer.write_all(self.space.as_bytes())
     }
-
     #[inline]
     fn end_object_value<W>(&mut self, _writer: &mut W) -> io::Result<()>
     where
         W: ?Sized + io::Write,
     {
+        self.has_value = true;
         Ok(())
     }
 }
-*/

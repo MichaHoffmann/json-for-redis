@@ -218,7 +218,7 @@ fn format(ctx: &mut Ctx) {
     redis::cmd("JSON.SET")
         .arg(key.clone())
         .arg("$")
-        .arg(r#"{"a":{"b":["c"]}}"#)
+        .arg(r#"{"a":{"b":["c","d"]}}"#)
         .execute(&mut con);
 
     assert_eq!(
@@ -234,9 +234,65 @@ fn format(ctx: &mut Ctx) {
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
         redis::Value::Data(
-            r#"[nntt{nntttt"a":ss{nntttttt"b":ss[nntttttttt"c"nntttttt]nntttt}nntt}nn]"#
+            r#"[nntt{nntttt"a":ss{nntttttt"b":ss[nntttttttt"c",nntttttttt"d"nntttttt]nntttt}nntt}nn]"#
                 .as_bytes()
                 .to_vec()
         )
+    );
+}
+
+#[test_context(Ctx)]
+#[test]
+fn format_empty_array(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"[]"#)
+        .execute(&mut con);
+
+    assert_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key)
+            .arg("INDENT")
+            .arg("tt")
+            .arg("NEWLINE")
+            .arg("nn")
+            .arg("SPACE")
+            .arg("ss")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(r#"[]"#.as_bytes().to_vec())
+    );
+}
+
+#[test_context(Ctx)]
+#[test]
+fn format_empty_object(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{}"#)
+        .execute(&mut con);
+
+    assert_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key)
+            .arg("INDENT")
+            .arg("tt")
+            .arg("NEWLINE")
+            .arg("nn")
+            .arg("SPACE")
+            .arg("ss")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(r#"{}"#.as_bytes().to_vec())
     );
 }

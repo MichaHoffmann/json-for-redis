@@ -17,8 +17,7 @@ pub struct Ctx {
 
 impl Ctx {
     pub fn connection(&mut self) -> redis::Connection {
-        self
-            .client
+        self.client
             .get_connection()
             .expect("failed to get connection")
     }
