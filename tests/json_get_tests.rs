@@ -207,3 +207,36 @@ fn key_does_not_exist(ctx: &mut Ctx) {
         redis::Value::Nil
     );
 }
+
+#[test_context(Ctx)]
+#[test]
+fn format(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":{"b":["c"]}}"#)
+        .execute(&mut con);
+
+    assert_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key.clone())
+            .arg("INDENT")
+            .arg("tt")
+            .arg("NEWLINE")
+            .arg("nn")
+            .arg("SPACE")
+            .arg("ss")
+            .arg("$")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(
+            r#"[nntt{nntttt"a":ss{nntttttt"b":ss[nntttttttt"c"nntttttt]nntttt}nntt}nn]"#
+                .as_bytes()
+                .to_vec()
+        )
+    );
+}

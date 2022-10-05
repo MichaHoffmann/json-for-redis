@@ -3,7 +3,6 @@ use jsonpath_lib::{replace_with, JsonPathError, NodeVisitor, ParseToken, Parser}
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue, REDIS_OK};
 use serde_json::{from_str, Value};
 
-// TODO: jsonpath errors, handle adding new values
 pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
 
@@ -25,39 +24,29 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let key_ptr = ctx.open_key_writable(&key);
     let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
 
-    //TODO: handle '$' path; replace_with does not replace in this case,
-    // we can simply overwrite though
-    // TODO: handle index append
     match key_value {
         Some(v) => {
-            if nx_or_xx.map_or(false, |w| w == Mod::NX) {
+            if is_nx(nx_or_xx) {
                 return Ok(RedisValue::Null);
             }
-            match split_path(&path) {
-                (p, Some(Rem::Key(k))) => {
-                    let res = _replace_with(v.clone(), &p, &mut |mut vv| {
+            match split_remainder_from_path(&path) {
+                (p, Some(Remainder::Key(k))) => {
+                    let res = replace_with_handle_root(v.clone(), &p, &mut |mut vv| {
                         if let Some(o) = vv.as_object_mut() {
                             o.insert(k.to_owned(), jsn.clone());
-                            return Some(vv);
                         }
-                        return None;
-                    })?;
-                    key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
-                }
-                (p, Some(Rem::Index(_i))) => {
-                    let res = _replace_with(v.clone(), &p, &mut |_vv| {
-                        return Some(jsn.clone());
+                        return vv;
                     })?;
                     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
                 }
                 (p, None) => {
-                    let res = _replace_with(v.clone(), &p, &mut |_| Some(jsn.clone()))?;
+                    let res = replace_with_handle_root(v.clone(), &p, &mut |_| jsn.clone())?;
                     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
                 }
             };
         }
         None => {
-            if nx_or_xx.map_or(false, |w| w == Mod::XX) {
+            if is_xx(nx_or_xx) {
                 return Ok(RedisValue::Null);
             }
             key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
@@ -72,10 +61,31 @@ enum Mod {
     XX,
 }
 
+fn is_nx(nx_or_xx: Option<Mod>) -> bool {
+    return nx_or_xx.map_or(false, |w| w == Mod::NX);
+}
+
+fn is_xx(nx_or_xx: Option<Mod>) -> bool {
+    return nx_or_xx.map_or(false, |w| w == Mod::XX);
+}
+
+fn replace_with_handle_root<F>(
+    value: Value,
+    path: &str,
+    fun: &mut F,
+) -> Result<Value, JsonPathError>
+where
+    F: FnMut(Value) -> Value,
+{
+    if path == "$" {
+        return Ok(fun(value.clone()));
+    }
+    return replace_with(value, path, &mut |v| Some(fun(v)));
+}
+
 #[derive(PartialEq, Eq)]
-enum Rem {
+enum Remainder {
     Key(String),
-    Index(usize),
 }
 
 struct NV<'a> {
@@ -104,28 +114,14 @@ impl<'a> NodeVisitor for NV<'a> {
     }
 }
 
-fn split_path(path: &str) -> (&str, Option<Rem>) {
+fn split_remainder_from_path(path: &str) -> (&str, Option<Remainder>) {
     let toks = NV::new(path).start().unwrap();
     match &toks[..] {
         [.., ParseToken::In, ParseToken::Key(k)] => {
             let suffix = format!(".{}", k);
             let pp = path.strip_suffix(&suffix.to_string()).unwrap();
-            (pp, Some(Rem::Key(k.to_string())))
+            (pp, Some(Remainder::Key(k.to_string())))
         }
         _ => return (path, None),
     }
-}
-
-fn _replace_with<F>(value: Value, path: &str, fun: &mut F) -> Result<Value, JsonPathError>
-where
-    F: FnMut(Value) -> Option<Value>,
-{
-    if path == "$" {
-        if let Some(v) = fun(value.clone()) {
-            return Ok(v);
-        }
-        //TODO: This is not correct; should be an error
-        return Ok(value);
-    }
-    return replace_with(value, path, fun);
 }

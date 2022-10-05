@@ -33,7 +33,7 @@ fn bad_args_wrong_arity_no_value(ctx: &mut Ctx) {
 
 #[test_context(Ctx)]
 #[test]
-fn existing_key_no_json(ctx: &mut Ctx) {
+fn no_json(ctx: &mut Ctx) {
     let mut con = ctx.connection();
 
     let key = random_key(16);
@@ -53,7 +53,7 @@ fn existing_key_no_json(ctx: &mut Ctx) {
 
 #[test_context(Ctx)]
 #[test]
-fn existing_key_set_at_root(ctx: &mut Ctx) {
+fn set_at_root(ctx: &mut Ctx) {
     let mut con = ctx.connection();
 
     let key = random_key(16);
@@ -81,7 +81,7 @@ fn existing_key_set_at_root(ctx: &mut Ctx) {
 
 #[test_context(Ctx)]
 #[test]
-fn existing_key_set_inner_key(ctx: &mut Ctx) {
+fn set_inner_key(ctx: &mut Ctx) {
     let mut con = ctx.connection();
 
     let key = random_key(16);
@@ -110,7 +110,7 @@ fn existing_key_set_inner_key(ctx: &mut Ctx) {
 
 #[test_context(Ctx)]
 #[test]
-fn existing_key_recursive_decent(ctx: &mut Ctx) {
+fn recursive_decent(ctx: &mut Ctx) {
     let mut con = ctx.connection();
 
     let key = random_key(16);
@@ -139,7 +139,7 @@ fn existing_key_recursive_decent(ctx: &mut Ctx) {
 
 #[test_context(Ctx)]
 #[test]
-fn existing_key_adding_new_key_to_object(ctx: &mut Ctx) {
+fn adding_new_key_to_object(ctx: &mut Ctx) {
     let mut con = ctx.connection();
 
     let key = random_key(16);
@@ -163,6 +163,64 @@ fn existing_key_adding_new_key_to_object(ctx: &mut Ctx) {
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
         redis::Value::Data(r#"[{"a":2,"b":8}]"#.as_bytes().to_vec())
+    );
+}
+
+#[test_context(Ctx)]
+#[test]
+fn adding_new_key_to_object_recursive_decent(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":{"b":1},"d":{"b":1}}"#)
+        .execute(&mut con);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$..b")
+        .arg(r#"2"#)
+        .execute(&mut con);
+
+    assert_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key.clone())
+            .arg("$..b")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(r#"[2,2]"#.as_bytes().to_vec())
+    );
+}
+
+#[test_context(Ctx)]
+#[test]
+fn adding_new_key_to_object_deep_recursive_decent(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$")
+        .arg(r#"{"a":{"b":{"c":1}},"d":{"b":{"c":2}}}"#)
+        .execute(&mut con);
+
+    redis::cmd("JSON.SET")
+        .arg(key.clone())
+        .arg("$..b.d")
+        .arg(r#"3"#)
+        .execute(&mut con);
+
+    assert_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key.clone())
+            .arg("$..b.d")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(r#"[3,3]"#.as_bytes().to_vec())
     );
 }
 
