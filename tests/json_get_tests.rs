@@ -18,7 +18,7 @@ fn simple(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$.a.b[0]")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -41,7 +41,7 @@ fn recursive_decent(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$..a")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -64,7 +64,7 @@ fn no_value_matched_at_path(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$.a")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -87,7 +87,7 @@ fn no_path_returns_value_at_root(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
         redis::Value::Data("1".as_bytes().to_vec())
@@ -109,7 +109,7 @@ fn multiple_paths_some_are_bad(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$.a")
             .arg("$$")
             .query::<redis::Value>(&mut con)
@@ -132,7 +132,7 @@ fn multiple_paths(ctx: &mut Ctx) {
         .execute(&mut con);
 
     let out = redis::cmd("JSON.GET")
-        .arg(key.clone())
+        .arg(key)
         .arg("$.a")
         .arg("$.b")
         .query::<redis::Value>(&mut con)
@@ -169,7 +169,7 @@ fn bad_args_value_is_not_json(ctx: &mut Ctx) {
         .execute(&mut con);
 
     redis::cmd("JSON.GET")
-        .arg(key.clone())
+        .arg(key)
         .query::<redis::Value>(&mut con)
         .expect_err("json get should have failed");
 }
@@ -183,7 +183,7 @@ fn bad_path(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$$$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -200,7 +200,7 @@ fn key_does_not_exist(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -223,7 +223,7 @@ fn format(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("INDENT")
             .arg("tt")
             .arg("NEWLINE")

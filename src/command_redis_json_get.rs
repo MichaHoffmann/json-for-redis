@@ -5,7 +5,6 @@ use serde::ser::Serialize;
 use serde_json::ser::{Formatter, Serializer};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::io;
 
 pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1).peekable();
@@ -32,8 +31,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             }
         }
     }
-
-    let paths = args.map(|s| s).collect::<Vec<RedisString>>();
+    let paths = args.collect::<Vec<RedisString>>();
 
     let key_ptr = ctx.open_key_writable(&key);
     let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
@@ -63,15 +61,15 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         }
     };
 
-    return match res {
+    match res {
         Ok(v) => {
             let mut w = Vec::with_capacity(128);
             let mut ser = Serializer::with_formatter(&mut w, fmt);
             v.serialize(&mut ser)?;
-            return Ok(RedisValue::StringBuffer(w));
+            Ok(RedisValue::StringBuffer(w))
         }
         Err(e) => Err(RedisError::String(e)),
-    };
+    }
 }
 
 pub struct Fmt {

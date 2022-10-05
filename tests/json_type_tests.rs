@@ -19,7 +19,7 @@ fn test_type_simple(ctx: &mut Ctx, val: &str, expect: &str) {
     );
     assert_eq!(
         redis::cmd("JSON.TYPE")
-            .arg(key.clone())
+            .arg(key)
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
         redis::Value::Data(expect.as_bytes().to_vec())
@@ -86,7 +86,7 @@ fn nested_simple_match(ctx: &mut Ctx) {
     );
     assert_eq!(
         redis::cmd("JSON.TYPE")
-            .arg(key.clone())
+            .arg(key)
             .arg("$.a")
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
@@ -112,7 +112,7 @@ fn nested_recursive_decent(ctx: &mut Ctx) {
     );
     assert_eq!(
         redis::cmd("JSON.TYPE")
-            .arg(key.clone())
+            .arg(key)
             .arg("$..a")
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),
@@ -141,7 +141,7 @@ fn nested_no_match(ctx: &mut Ctx) {
     );
     assert_eq!(
         redis::cmd("JSON.TYPE")
-            .arg(key.clone())
+            .arg(key)
             .arg("$.c")
             .query::<redis::Value>(&mut con)
             .expect("json type failed"),

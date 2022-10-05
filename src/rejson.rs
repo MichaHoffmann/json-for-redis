@@ -32,13 +32,13 @@ pub static REDIS_JSON_TYPE: RedisType = RedisType::new(
 );
 
 unsafe extern "C" fn redis_json_rdb_load(rdb: *mut RedisModuleIO, _: i32) -> *mut c_void {
-    return match load_string(rdb) {
+    match load_string(rdb) {
         Err(_) => ptr::null_mut(),
         Ok(v) => match from_str::<Value>(&v.to_string_lossy()) {
             Err(_) => ptr::null_mut(),
             Ok(v) => Box::into_raw(Box::new(v)).cast::<c_void>(),
         },
-    };
+    }
 }
 
 unsafe extern "C" fn redis_json_rdb_save(rdb: *mut RedisModuleIO, v: *mut c_void) {

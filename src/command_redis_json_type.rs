@@ -8,7 +8,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
     let key = args.next_arg()?;
     let path = match args.next_string() {
-        Ok(v) => v.to_string(),
+        Ok(v) => v,
         Err(_) => "$".to_string(),
     };
     args.done()?;
@@ -32,7 +32,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         matches
             .iter()
             .map(|v| json_type(v).as_bytes().to_vec())
-            .map(|v| RedisValue::StringBuffer(v))
+            .map(RedisValue::StringBuffer)
             .collect(),
     ));
 }
@@ -57,5 +57,5 @@ fn json_type(m: &Value) -> String {
             "undefined"
         }
     };
-    return r.to_owned();
+    r.to_owned()
 }

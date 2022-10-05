@@ -31,16 +31,16 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             }
             match split_remainder_from_path(&path) {
                 (p, Some(Remainder::Key(k))) => {
-                    let res = replace_with_handle_root(v.clone(), &p, &mut |mut vv| {
+                    let res = replace_with_handle_root(v.clone(), p, &mut |mut vv| {
                         if let Some(o) = vv.as_object_mut() {
                             o.insert(k.to_owned(), jsn.clone());
                         }
-                        return vv;
+                        vv
                     })?;
                     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
                 }
                 (p, None) => {
-                    let res = replace_with_handle_root(v.clone(), &p, &mut |_| jsn.clone())?;
+                    let res = replace_with_handle_root(v.clone(), p, &mut |_| jsn.clone())?;
                     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
                 }
             };
@@ -52,7 +52,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             key_ptr.set_value(&REDIS_JSON_TYPE, jsn)?;
         }
     };
-    return REDIS_OK;
+    REDIS_OK
 }
 
 #[derive(PartialEq, Eq)]
@@ -62,11 +62,11 @@ enum Mod {
 }
 
 fn is_nx(nx_or_xx: Option<Mod>) -> bool {
-    return nx_or_xx.map_or(false, |w| w == Mod::NX);
+    nx_or_xx.map_or(false, |w| w == Mod::NX)
 }
 
 fn is_xx(nx_or_xx: Option<Mod>) -> bool {
-    return nx_or_xx.map_or(false, |w| w == Mod::XX);
+    nx_or_xx.map_or(false, |w| w == Mod::XX)
 }
 
 fn replace_with_handle_root<F>(
@@ -78,9 +78,9 @@ where
     F: FnMut(Value) -> Value,
 {
     if path == "$" {
-        return Ok(fun(value.clone()));
+        return Ok(fun(value));
     }
-    return replace_with(value, path, &mut |v| Some(fun(v)));
+    replace_with(value, path, &mut |v| Some(fun(v)))
 }
 
 #[derive(PartialEq, Eq)]
@@ -119,9 +119,9 @@ fn split_remainder_from_path(path: &str) -> (&str, Option<Remainder>) {
     match &toks[..] {
         [.., ParseToken::In, ParseToken::Key(k)] => {
             let suffix = format!(".{}", k);
-            let pp = path.strip_suffix(&suffix.to_string()).unwrap();
+            let pp = path.strip_suffix(&suffix).unwrap();
             (pp, Some(Remainder::Key(k.to_string())))
         }
-        _ => return (path, None),
+        _ => (path, None),
     }
 }

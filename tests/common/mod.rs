@@ -17,10 +17,10 @@ pub struct Ctx {
 
 impl Ctx {
     pub fn connection(&mut self) -> redis::Connection {
-        return self
+        self
             .client
             .get_connection()
-            .expect("failed to get connection");
+            .expect("failed to get connection")
     }
 }
 
@@ -46,7 +46,7 @@ impl TestContext for Ctx {
             }
             thread::sleep(time::Duration::from_millis(100));
         }
-        return ctx;
+        ctx
     }
 
     fn teardown(mut self) {
@@ -58,10 +58,10 @@ impl TestContext for Ctx {
 fn get_random_port() -> u16 {
     let _lock = MUX.lock().expect("unable to lock port selection");
 
-    return rand::thread_rng()
+    rand::thread_rng()
         .sample_iter(Uniform::new(10000, 40000))
         .find(|port| port_is_available(*port))
-        .unwrap();
+        .unwrap()
 }
 
 fn port_is_available(port: u16) -> bool {
@@ -72,9 +72,9 @@ fn port_is_available(port: u16) -> bool {
 }
 
 pub fn random_key(size: usize) -> String {
-    return rand::thread_rng()
+    rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(size)
         .map(char::from)
-        .collect();
+        .collect()
 }

@@ -11,7 +11,7 @@ fn bad_args_wrong_arity_no_path(ctx: &mut Ctx) {
     let key = random_key(16);
 
     redis::cmd("JSON.SET")
-        .arg(key.clone())
+        .arg(key)
         .arg(r#"{"a":1}"#)
         .query::<redis::Value>(&mut con)
         .expect_err("json set should have failed");
@@ -25,7 +25,7 @@ fn bad_args_wrong_arity_no_value(ctx: &mut Ctx) {
     let key = random_key(16);
 
     redis::cmd("JSON.SET")
-        .arg(key.clone())
+        .arg(key)
         .arg("$")
         .query::<redis::Value>(&mut con)
         .expect_err("json set should have failed");
@@ -44,7 +44,7 @@ fn no_json(ctx: &mut Ctx) {
         .execute(&mut con);
 
     redis::cmd("JSON.SET")
-        .arg(key.clone())
+        .arg(key)
         .arg("$")
         .arg(r#""a""#)
         .query::<redis::Value>(&mut con)
@@ -72,7 +72,7 @@ fn set_at_root(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
         redis::Value::Data(r#""b""#.as_bytes().to_vec())
@@ -100,7 +100,7 @@ fn set_inner_key(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -129,7 +129,7 @@ fn recursive_decent(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -158,7 +158,7 @@ fn adding_new_key_to_object(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -187,7 +187,7 @@ fn adding_new_key_to_object_recursive_decent(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$..b")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -216,7 +216,7 @@ fn adding_new_key_to_object_deep_recursive_decent(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$..b.d")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -232,7 +232,7 @@ fn nx_key_does_not_exist(ctx: &mut Ctx) {
     let key = random_key(16);
 
     redis::cmd("JSON.SET")
-        .arg(key.clone())
+        .arg(key)
         .arg("$")
         .arg(r#"{"a":2}"#)
         .arg("NX")
@@ -254,7 +254,7 @@ fn nx_key_does_exist(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.SET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .arg(r#""bar""#)
             .arg("NX")
@@ -286,7 +286,7 @@ fn xx_key_does_exist(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.GET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
@@ -303,7 +303,7 @@ fn xx_key_does_not_exist(ctx: &mut Ctx) {
 
     assert_eq!(
         redis::cmd("JSON.SET")
-            .arg(key.clone())
+            .arg(key)
             .arg("$")
             .arg(r#""bar""#)
             .arg("XX")
