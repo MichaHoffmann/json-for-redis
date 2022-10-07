@@ -2,13 +2,12 @@ extern crate redis;
 
 use rand::{distributions::Alphanumeric, distributions::Uniform, Rng};
 use std::env;
+use std::iter::repeat;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::{thread, time};
 use test_context::TestContext;
-
-static MUX: Mutex<i32> = Mutex::new(0);
 
 pub struct Ctx {
     redis: Child,
@@ -25,7 +24,7 @@ impl Ctx {
 
 impl TestContext for Ctx {
     fn setup() -> Ctx {
-        let port = get_random_port();
+        let port = random_port();
         let module = env::var("REDIS_JSON_MODULE").expect("REDIS_JSON_MODULE not set");
         let ctx = Ctx {
             redis: Command::new("redis-server")
@@ -34,17 +33,19 @@ impl TestContext for Ctx {
                 .arg(format!("--loadmodule {}", module))
                 .stdout(Stdio::null())
                 .spawn()
-                .expect("starting redis failed"),
+                .expect("failed to start redis"),
             client: redis::Client::open(format!("redis://0.0.0.0:{}/", port))
                 .expect("failed to create client"),
         };
 
-        loop {
-            if ctx.client.get_connection().is_ok() {
-                break;
-            }
-            thread::sleep(time::Duration::from_millis(100));
-        }
+        repeat(())
+            .take(10)
+            .find(|_| {
+                thread::sleep(time::Duration::from_millis(100));
+                ctx.client.get_connection().is_ok()
+            })
+            .expect("failed to connect to redis");
+
         ctx
     }
 
@@ -54,11 +55,12 @@ impl TestContext for Ctx {
     }
 }
 
-fn get_random_port() -> u16 {
+fn random_port() -> u16 {
+    static MUX: Mutex<i32> = Mutex::new(0);
     let _lock = MUX.lock().expect("unable to lock port selection");
 
     rand::thread_rng()
-        .sample_iter(Uniform::new(10000, 40000))
+        .sample_iter(Uniform::new(1024, 49151))
         .find(|port| TcpListener::bind(("127.0.0.1", *port)).is_ok())
         .unwrap()
 }
