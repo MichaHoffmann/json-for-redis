@@ -16,21 +16,23 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let key_ptr = ctx.open_key_writable(&key);
     let key_value = key_ptr.get_value::<Value>(&REDIS_JSON_TYPE)?;
 
-    let mut i = 0;
-    match key_value {
-        Some(v) => {
-            if path == "$" {
-                i += 1;
-                key_ptr.delete()?;
-            } else {
-                let res = replace_with(v.clone(), path.as_str(), &mut |_| {
-                    i += 1;
-                    None
-                })?;
-                key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
-            }
+    let val = match key_value {
+        Some(v) => v,
+        None => {
+            return Ok(RedisValue::Integer(0));
         }
-        None => {}
     };
+
+    if path == "$" {
+        key_ptr.delete()?;
+        return Ok(RedisValue::Integer(1));
+    }
+
+    let mut i = 0;
+    let res = replace_with(val.clone(), path.as_str(), &mut |_| {
+        i += 1;
+        None
+    })?;
+    key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
     Ok(RedisValue::Integer(i))
 }
