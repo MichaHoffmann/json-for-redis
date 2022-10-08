@@ -96,3 +96,29 @@ fn deleting_without_path_deletes_root(ctx: &mut Ctx) {
         redis::Value::Nil
     );
 }
+
+#[test_context(Ctx)]
+#[test]
+fn deleting_nonexistent_key(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    let key = random_key(16);
+
+    assert_eq!(
+        redis::cmd("JSON.DEL")
+            .arg(key)
+            .query::<redis::Value>(&mut con)
+            .expect("json del failed"),
+        redis::Value::Int(0)
+    );
+}
+
+#[test_context(Ctx)]
+#[test]
+fn bad_args(ctx: &mut Ctx) {
+    let mut con = ctx.connection();
+
+    redis::cmd("JSON.DEL")
+        .query::<redis::Value>(&mut con)
+        .expect_err("json del should have failed");
+}
