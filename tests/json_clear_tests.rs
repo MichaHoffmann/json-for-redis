@@ -49,7 +49,7 @@ fn clear_numbers(ctx: &mut Ctx) {
     redis::cmd("JSON.SET")
         .arg(key.clone())
         .arg("$")
-        .arg(r#"{"a":1,"b":0,"c":1.0,"d":0.0,"e":-0}"#)
+        .arg(r#"{"a":1,"b":0,"c":1.0,"d":0.0,"e":-0,"f":1e63}"#)
         .execute(&mut con);
 
     assert_eq!(
@@ -58,7 +58,7 @@ fn clear_numbers(ctx: &mut Ctx) {
             .arg("$.*")
             .query::<redis::Value>(&mut con)
             .expect("json clear failed"),
-        redis::Value::Int(2)
+        redis::Value::Int(3)
     );
 
     assert_eq!(
@@ -67,6 +67,6 @@ fn clear_numbers(ctx: &mut Ctx) {
             .arg("$.*")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Data(r#"[0,0,0,0.0,-0.0]"#.as_bytes().to_vec())
+        redis::Value::Data(r#"[0,0,0,0.0,-0.0,0]"#.as_bytes().to_vec())
     );
 }
