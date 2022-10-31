@@ -9,7 +9,7 @@ name = "rejson"
 test = false
 
 [dependencies]
-jsonpath_lib = { path = "../jsonpath" }
+jsonpath-rs  = { git = "https://github.com/MichaHoffmann/jsonpath-rs" }
 redis-module = "1.0.1"
 serde = "1.0.144"
 serde_json = "1.0.85"

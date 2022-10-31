@@ -52,5 +52,5 @@ unsafe extern "C" fn redis_json_rdb_free(v: *mut c_void) {
     if v.is_null() {
         return;
     }
-    Box::from_raw(v.cast::<RedisType>());
+    drop(Box::from_raw(v.cast::<RedisType>()));
 }

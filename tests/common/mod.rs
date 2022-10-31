@@ -72,3 +72,20 @@ pub fn random_key(size: usize) -> String {
         .map(char::from)
         .collect()
 }
+
+// TODO: remove this, its stupid
+#[macro_export]
+macro_rules! assert_redis_json_eq {
+    ($want:expr,$have:expr) => {{
+        if let redis::Value::Data(want_unwrapped) = $want {
+            if let redis::Value::Data(have_unwrapped) = $have {
+                assert_eq!(
+                    from_slice::<Value>(&have_unwrapped).expect("bad json"),
+                    from_slice::<Value>(&want_unwrapped).expect("bad json")
+                );
+                return;
+            }
+        }
+        panic!("only inputs of type redis::Value::Data are supported")
+    }};
+}
