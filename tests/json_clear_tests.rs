@@ -1,4 +1,6 @@
+#![macro_use]
 use common::{random_key, Ctx};
+use serde_json::{from_slice, Value};
 use test_context::test_context;
 
 mod common;
@@ -25,7 +27,7 @@ fn upstream_example(ctx: &mut Ctx) {
         redis::Value::Int(4)
     );
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$")
@@ -61,7 +63,7 @@ fn clear_numbers(ctx: &mut Ctx) {
         redis::Value::Int(3)
     );
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.*")

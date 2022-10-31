@@ -6,6 +6,7 @@ mod command_redis_json_del;
 mod command_redis_json_get;
 mod command_redis_json_set;
 mod command_redis_json_type;
+mod jsonpath;
 mod rejson;
 
 use crate::rejson::REDIS_JSON_TYPE;

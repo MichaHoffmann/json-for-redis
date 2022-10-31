@@ -1,5 +1,5 @@
+use crate::jsonpath::get;
 use crate::rejson::REDIS_JSON_TYPE;
-use jsonpath_lib::select;
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 use serde::ser::Serialize;
 use serde_json::ser::{Formatter, Serializer};
@@ -42,11 +42,8 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     };
 
     let res = match paths.len() {
-        0 => match select(jsn, "$")?.pop() {
-            Some(v) => Ok(json!(v)),
-            None => return Ok(RedisValue::Null),
-        },
-        1 => match select(jsn, &paths[0].to_string()) {
+        0 => Ok(json!(jsn)),
+        1 => match get(&paths[0].to_string(), jsn) {
             Ok(v) => Ok(json!(v)),
             Err(_) => return Ok(RedisValue::Null),
         },
@@ -54,7 +51,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             let m = paths
                 .iter()
                 .map(|p| p.to_string())
-                .map(|p| (p.clone(), select(jsn, &p)))
+                .map(|p| (p.clone(), get(&p, jsn)))
                 .filter(|(_, r)| r.is_ok())
                 .map(|(p, r)| (p, r.unwrap()))
                 .collect::<HashMap<String, Vec<&Value>>>();

@@ -1,4 +1,6 @@
+#![macro_use]
 use common::{random_key, Ctx};
+use serde_json::{from_slice, Value};
 use test_context::test_context;
 
 mod common;
@@ -16,7 +18,7 @@ fn simple(ctx: &mut Ctx) {
         .arg(r#"{"a":{"b":["c"]}}"#)
         .execute(&mut con);
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a.b[0]")
@@ -39,14 +41,19 @@ fn recursive_decent(ctx: &mut Ctx) {
         .arg(r#"{"x":{"a":1},"y":{"a":2}}"#)
         .execute(&mut con);
 
-    assert_eq!(
-        redis::cmd("JSON.GET")
+    // order of object keys is not guaranteed, thus
+    // the order of the results in this vector is not guaranteed
+    assert!(vec![
+        redis::Value::Data("[1,2]".as_bytes().to_vec()),
+        redis::Value::Data("[2,1]".as_bytes().to_vec())
+    ]
+    .contains(
+        &redis::cmd("JSON.GET")
             .arg(key)
             .arg("$..a")
             .query::<redis::Value>(&mut con)
             .expect("json get failed"),
-        redis::Value::Data("[1,2]".as_bytes().to_vec())
-    );
+    ));
 }
 
 #[test_context(Ctx)]
@@ -62,7 +69,7 @@ fn no_value_matched_at_path(ctx: &mut Ctx) {
         .arg("1")
         .execute(&mut con);
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a")
@@ -85,7 +92,7 @@ fn no_path_returns_value_at_root(ctx: &mut Ctx) {
         .arg("1")
         .execute(&mut con);
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .query::<redis::Value>(&mut con)
@@ -107,7 +114,7 @@ fn multiple_paths_some_are_bad(ctx: &mut Ctx) {
         .arg(r#"{"a":1,"b":2}"#)
         .execute(&mut con);
 
-    assert_eq!(
+    assert_redis_json_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a")
@@ -131,19 +138,15 @@ fn multiple_paths(ctx: &mut Ctx) {
         .arg(r#"{"a":1,"b":2}"#)
         .execute(&mut con);
 
-    let out = redis::cmd("JSON.GET")
-        .arg(key)
-        .arg("$.a")
-        .arg("$.b")
-        .query::<redis::Value>(&mut con)
-        .expect("json get failed");
-    if let redis::Value::Data(res) = out {
-        let s = String::from_utf8(res).expect("decoding utf8 failed");
-        assert!(s.contains(r#""$.a":[1]"#));
-        assert!(s.contains(r#""$.b":[2]"#));
-    } else {
-        panic!("expected redis value");
-    };
+    assert_redis_json_eq!(
+        redis::cmd("JSON.GET")
+            .arg(key)
+            .arg("$.a")
+            .arg("$.b")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed"),
+        redis::Value::Data(r#"{"$.a":[1],"$.b":[2]}"#.as_bytes().to_vec())
+    );
 }
 
 #[test_context(Ctx)]

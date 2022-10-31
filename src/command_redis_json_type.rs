@@ -1,5 +1,5 @@
+use crate::jsonpath::get;
 use crate::rejson::REDIS_JSON_TYPE;
-use jsonpath_lib::select;
 use redis_module::{Context, NextArg, RedisResult, RedisString, RedisValue};
 use serde_json::Value;
 
@@ -19,7 +19,7 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         Some(v) => v,
         None => return Ok(RedisValue::Null),
     };
-    let matches = match select(jsn, &path) {
+    let matches = match get(&path, jsn) {
         Ok(v) => v,
         Err(_) => return Ok(RedisValue::Null),
     };

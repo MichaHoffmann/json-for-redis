@@ -1,5 +1,5 @@
+use crate::jsonpath::{map_each, MapAction};
 use crate::rejson::*;
-use jsonpath_lib::replace_with;
 use redis_module::{Context, NextArg, RedisResult, RedisString, RedisValue};
 use serde_json::Value;
 
@@ -29,9 +29,9 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
 
     let mut i = 0;
-    let res = replace_with(val.clone(), path.as_str(), &mut |_| {
+    let res = map_each(path.as_str(), val, &mut |_| {
         i += 1;
-        None
+        MapAction::Delete
     })?;
     key_ptr.set_value(&REDIS_JSON_TYPE, res)?;
     Ok(RedisValue::Integer(i))
