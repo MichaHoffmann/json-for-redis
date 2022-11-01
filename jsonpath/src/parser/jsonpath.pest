@@ -1,0 +1,49 @@
+// Based on https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-03.html
+
+jsonpath = _{ SOI ~ root ~ selector* ~ EOI }
+
+root = { "$" | "" }
+
+selector = {
+  dot_selector |
+  dot_wildcard_selector |
+  index_selector |
+  index_wildcard_selector |
+  decendant_selector
+  // array_slice_selector |
+  // union_selector |
+  // filter_selector
+}
+
+dot_selector    = {"." ~ dot_member_name }
+dot_member_name = { name_first ~ name_char* }
+name_char       = { ASCII_DIGIT | name_first }
+name_first      = { ASCII_ALPHA | "_" | '\u{80}'..'\u{10FFFF}' }
+
+dot_wildcard_selector = { "." ~ wildcard }
+wildcard = { "*" }
+
+index_selector            = { "[" ~ ( quoted_member_name | element_index ) ~"]" }
+quoted_member_name        = { "\"" ~ double_quoted_string ~ "\"" | "'" ~ single_quoted_string ~ "'" }
+double_quoted_string      = { ( raw_double_quoted_string | escape )* }
+single_quoted_string      = { ( raw_single_quoted_string | escape )* }
+raw_double_quoted_string  = { (!("\\" | "\"") ~ ANY)+ }
+raw_single_quoted_string  = { (!("\\" | "'") ~ ANY)+ }
+escape                    = { "\\" ~ (predefined | unicode) }
+predefined                = { "b" | "t" | "n" | "f" | "r" | "\"" | "'" | "/" | "\\" }
+unicode                   = { "u" ~ unicode_hex }
+unicode_hex               = { ASCII_HEX_DIGIT{4} }
+element_index             = { "-"? ~ ( "0" | '1'..'9' ~ ASCII_DIGIT* ) }
+
+index_wildcard_selector = { "[" ~ wildcard ~ "]" }
+
+decendant_selector = { ".." ~ ( dot_member_name | index_selector | index_wildcard_selector | wildcard ) }
+
+// TODO
+array_slice_selector = { ANY }
+
+// TODO
+union_selector = { ANY }
+
+// TODO
+filter_selector = { ANY }
