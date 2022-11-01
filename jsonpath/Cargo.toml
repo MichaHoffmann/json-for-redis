@@ -1,0 +1,12 @@
+[package]
+name = "jsonpath"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pest = "2.4.0"
+pest_derive = "2.4.0"
+serde = "1.0.144"
+serde_json = "1.0.85"

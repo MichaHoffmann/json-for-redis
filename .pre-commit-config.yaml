@@ -10,7 +10,7 @@ repos:
     name: fmt
     language: system
     types: [file, rust]
-    entry: cargo fmt -- --check
+    entry: cargo fmt --all -- --check
     pass_filenames: false
   - id: clippy
     name: clippy
@@ -22,6 +22,6 @@ repos:
     name: test
     language: system
     types: [file, rust]
-    entry: sh -c "cargo build && REDIS_JSON_MODULE=target/debug/librejson.so cargo test"
+    entry: sh -c "cargo build --all && REDIS_JSON_MODULE=target/debug/librejson.so cargo test --all"
     pass_filenames: false
     stages: [push]
