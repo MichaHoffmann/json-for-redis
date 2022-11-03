@@ -1,6 +1,5 @@
 #![macro_use]
 use common::{random_key, Ctx};
-use serde_json::{from_slice, Value};
 use test_context::test_context;
 
 mod common;
@@ -27,18 +26,27 @@ fn upstream_example(ctx: &mut Ctx) {
         redis::Value::Int(4)
     );
 
-    assert_redis_json_eq!(
-        redis::cmd("JSON.GET")
-            .arg(key)
-            .arg("$")
-            .query::<redis::Value>(&mut con)
-            .expect("json get failed"),
+    assert!(vec![
+        // upstream
+        redis::Value::Data(
+            r#"[{"arr":[],"bool":true,"float":0,"int":0,"obj":{},"str":"foo"}]"#
+                .as_bytes()
+                .to_vec(),
+        ),
+        // this library
         redis::Value::Data(
             r#"[{"obj":{},"arr":[],"str":"foo","bool":true,"int":0,"float":0}]"#
                 .as_bytes()
-                .to_vec()
+                .to_vec(),
         )
-    );
+    ]
+    .contains(
+        &redis::cmd("JSON.GET")
+            .arg(key)
+            .arg("$")
+            .query::<redis::Value>(&mut con)
+            .expect("json get failed")
+    ));
 }
 
 #[test_context(Ctx)]
@@ -63,7 +71,7 @@ fn clear_numbers(ctx: &mut Ctx) {
         redis::Value::Int(3)
     );
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.*")
