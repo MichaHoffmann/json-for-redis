@@ -1,6 +1,5 @@
 #![macro_use]
 use common::{random_key, Ctx};
-use serde_json::{from_slice, Value};
 use test_context::test_context;
 
 mod common;
@@ -18,7 +17,7 @@ fn simple(ctx: &mut Ctx) {
         .arg(r#"{"a":{"b":["c"]}}"#)
         .execute(&mut con);
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a.b[0]")
@@ -41,10 +40,11 @@ fn recursive_decent(ctx: &mut Ctx) {
         .arg(r#"{"x":{"a":1},"y":{"a":2}}"#)
         .execute(&mut con);
 
-    // order of object keys is not guaranteed, thus
-    // the order of the results in this vector is not guaranteed
+    // order of matches is arbitary here
     assert!(vec![
+        // upstream
         redis::Value::Data("[1,2]".as_bytes().to_vec()),
+        // this library
         redis::Value::Data("[2,1]".as_bytes().to_vec())
     ]
     .contains(
@@ -69,7 +69,7 @@ fn no_value_matched_at_path(ctx: &mut Ctx) {
         .arg("1")
         .execute(&mut con);
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a")
@@ -92,7 +92,7 @@ fn no_path_returns_value_at_root(ctx: &mut Ctx) {
         .arg("1")
         .execute(&mut con);
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .query::<redis::Value>(&mut con)
@@ -114,7 +114,7 @@ fn multiple_paths_some_are_bad(ctx: &mut Ctx) {
         .arg(r#"{"a":1,"b":2}"#)
         .execute(&mut con);
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a")
@@ -138,7 +138,7 @@ fn multiple_paths(ctx: &mut Ctx) {
         .arg(r#"{"a":1,"b":2}"#)
         .execute(&mut con);
 
-    assert_redis_json_eq!(
+    assert_eq!(
         redis::cmd("JSON.GET")
             .arg(key)
             .arg("$.a")
