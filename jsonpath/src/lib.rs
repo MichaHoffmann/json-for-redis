@@ -341,15 +341,35 @@ pub fn matches(
                         col
                     })
                     .collect(),
+                parser::Selector::Union(union_elements) => acc
+                    .into_iter()
+                    .flat_map(|(p, v)| {
+                        union_elements
+                            .clone()
+                            .into_iter()
+                            .filter_map(move |union_element| match union_element {
+                                parser::UnionMember::MemberName(k) => v
+                                    .as_object()
+                                    .and_then(|object| object.get(&k))
+                                    .map(|val| (cons!(p, PathSegment::MemberName(k)), val)),
+                                parser::UnionMember::ArrayIndex(i) => {
+                                    v.as_array().and_then(|array| {
+                                        wrapped_index(i, array.len()).map(|safe_index| {
+                                            let elem = unsafe { array.get_unchecked(safe_index) };
+                                            (cons!(p, PathSegment::ArrayIndex(safe_index)), elem)
+                                        })
+                                    })
+                                }
+                            })
+                    })
+                    .collect(),
             })
         })
         .map(|paths| {
             paths
                 .into_iter()
                 .map(|(cons_path, _)| {
-                    // TODO:
-                    // Make get/set/del/map operations work on the cons path. That
-                    // way we can avoid creating all those vectors here.
+                    // TODO: this is a performance bottleneck for large result sets, find a better datastructure
                     let mut cur = &cons_path;
                     let mut res = vec![];
                     while let ConsList::Cons(head, tail) = cur.as_ref() {
@@ -397,13 +417,14 @@ mod tests {
                     "b": "bar",
                     "c": [
                         "1",
-                        "2"
+                        "2",
+                        "3"
                     ]
                 }),
                 expectations: vec![
                     Expectation {
                         path: "$.c",
-                        expect: vec![&json!(["1", "2"])],
+                        expect: vec![&json!(["1", "2", "3"])],
                     },
                     Expectation {
                         path: "$['a']",
@@ -419,7 +440,23 @@ mod tests {
                     },
                     Expectation {
                         path: "$.c.*",
-                        expect: vec![&json!("1"), &json!("2")],
+                        expect: vec![&json!("1"), &json!("2"), &json!("3")],
+                    },
+                    Expectation {
+                        path: "$['a','b']",
+                        expect: vec![&json!("foo"), &json!("bar")],
+                    },
+                    Expectation {
+                        path: "$['a','d']",
+                        expect: vec![&json!("foo")],
+                    },
+                    Expectation {
+                        path: "$.c[0,-1]",
+                        expect: vec![&json!("1"), &json!("3")],
+                    },
+                    Expectation {
+                        path: "$.c[0,-4]",
+                        expect: vec![&json!("1")],
                     },
                 ],
             },
