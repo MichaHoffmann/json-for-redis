@@ -19,15 +19,13 @@ pub fn cmd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         Some(v) => v,
         None => return Ok(RedisValue::Null),
     };
+    if path == "$" {
+        return Ok(RedisValue::StringBuffer(json_type(jsn).as_bytes().to_vec()));
+    }
     let matches = match get(&path, jsn) {
         Ok(v) => v,
         Err(_) => return Ok(RedisValue::Null),
     };
-
-    if path == "$" {
-        let v = unsafe { matches.get_unchecked(0) };
-        return Ok(RedisValue::StringBuffer(json_type(v).as_bytes().to_vec()));
-    }
     return Ok(RedisValue::Array(
         matches
             .iter()
