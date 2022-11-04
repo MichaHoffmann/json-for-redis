@@ -18,6 +18,13 @@ pub enum Selector {
     DecendantDotMemberName(String),
     DecendantWildcard,
     DecendantArrayIndex(isize),
+    Union(Vec<UnionMember>),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum UnionMember {
+    MemberName(String),
+    ArrayIndex(isize),
 }
 
 pub fn parse(source: &str) -> Result<Vec<Selector>, String> {
@@ -52,7 +59,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<Selector, String> {
         Rule::index_wildcard_selector => Ok(Selector::Wildcard),
         Rule::array_slice_selector => inner!(pair, parse_array_slice_selector),
         Rule::decendant_selector => inner!(pair, parse_decendant_selector),
-        Rule::union_selector => inner!(pair, parse_union_selector),
+        Rule::union_selector => parse_union_selector(pair),
         Rule::filter_selector => inner!(pair, parse_filter_selector),
         _ => unreachable!(),
     }
@@ -97,11 +104,27 @@ fn unimplemented<T>(pair: Pair<Rule>) -> Result<T, String> {
     Err(format!("unimplemented: {:}", pair.as_str()))
 }
 
-fn parse_array_slice_selector(pair: Pair<Rule>) -> Result<Selector, String> {
-    unimplemented(pair)
+fn parse_union_selector(pair: Pair<Rule>) -> Result<Selector, String> {
+    let cur = pair.into_inner();
+    let mut children = vec![];
+    for next in cur {
+        let inner = next.into_inner().next().unwrap();
+        match inner.as_rule() {
+            Rule::quoted_member_name => {
+                let member_name = member_name_from_quoted(inner)?;
+                children.push(UnionMember::MemberName(member_name));
+            }
+            Rule::element_index => {
+                let array_index = array_index(inner)?;
+                children.push(UnionMember::ArrayIndex(array_index));
+            }
+            _ => unreachable!(),
+        };
+    }
+    Ok(Selector::Union(children))
 }
 
-fn parse_union_selector(pair: Pair<Rule>) -> Result<Selector, String> {
+fn parse_array_slice_selector(pair: Pair<Rule>) -> Result<Selector, String> {
     unimplemented(pair)
 }
 
@@ -203,6 +226,10 @@ mod tests {
                 expect: vec![Selector::Root, Selector::ArrayIndex(-1)],
             },
             Test {
+                input: "$[10]",
+                expect: vec![Selector::Root, Selector::ArrayIndex(10)],
+            },
+            Test {
                 input: r#"$["a"]"#,
                 expect: vec![Selector::Root, Selector::DotMemberName("a".to_owned())],
             },
@@ -252,6 +279,17 @@ mod tests {
                     Selector::Wildcard,
                 ],
             },
+            Test {
+                input: "$['a','b',1]",
+                expect: vec![
+                    Selector::Root,
+                    Selector::Union(vec![
+                        UnionMember::MemberName("a".to_owned()),
+                        UnionMember::MemberName("b".to_owned()),
+                        UnionMember::ArrayIndex(1),
+                    ]),
+                ],
+            },
         ]
         .iter()
         .for_each(|test| {
@@ -271,6 +309,11 @@ mod tests {
             "$.5",
             "$[abc]",
             "$[9999999999999999999999999999999999999999]",
+            "$['1'",
+            "$['1]",
+            "$['1',]",
+            "$[abc]",
+            "$['a',99999999999999999999999999999999999999]",
             r#"$["\uXX"]"#,
             r#"$["\u001"]"#,
             r#"$["\uABCG"]"#,

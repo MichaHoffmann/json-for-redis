@@ -11,5 +11,5 @@ An implementation of JSONPath according to https://www.ietf.org/archive/id/draft
 - [X] Index Wildcard Selector `[*]`
 - [ ] Array Slice Selector `[0:6:2]`
 - [X] Decendent Selector `..foo`, `..[2]`, `..*`, `..[*]`
-- [ ] Union Selector `["foo", "bar"]`
+- [X] Union Selector `["foo", "bar"]`
 - [ ] Filter Selector `[?@]`
