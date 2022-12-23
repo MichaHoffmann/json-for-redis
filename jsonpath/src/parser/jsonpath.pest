@@ -10,40 +10,42 @@ selector = {
   index_selector |
   index_wildcard_selector |
   decendant_selector |
-  union_selector
-  // array_slice_selector |
-  // filter_selector
+  union_selector |
+  array_slice_selector
+  // | filter_selector
 }
 
-dot_selector    = {"." ~ dot_member_name }
-dot_member_name = { name_first ~ name_char* }
-name_char       = { ASCII_DIGIT | name_first }
-name_first      = { ASCII_ALPHA | "_" | '\u{80}'..'\u{10FFFF}' }
+dot_selector                    = {"." ~ dot_member_name }
+dot_member_name                 = { name_first ~ name_char* }
+name_char                       = { ASCII_DIGIT | name_first }
+name_first                      = { ASCII_ALPHA | "_" | '\u{80}'..'\u{10FFFF}' }
 
-dot_wildcard_selector = { "." ~ wildcard }
-wildcard = { "*" }
+dot_wildcard_selector           = { "." ~ wildcard }
+wildcard                        = { "*" }
 
-index_selector            = { "[" ~ ( quoted_member_name | element_index ) ~"]" }
-quoted_member_name        = { "\"" ~ double_quoted_string ~ "\"" | "'" ~ single_quoted_string ~ "'" }
-double_quoted_string      = { ( raw_double_quoted_string | escape )* }
-single_quoted_string      = { ( raw_single_quoted_string | escape )* }
-raw_double_quoted_string  = { (!("\\" | "\"") ~ ANY)+ }
-raw_single_quoted_string  = { (!("\\" | "'") ~ ANY)+ }
-escape                    = { "\\" ~ (predefined | unicode) }
-predefined                = { "b" | "t" | "n" | "f" | "r" | "\"" | "'" | "/" | "\\" }
-unicode                   = { "u" ~ unicode_hex }
-unicode_hex               = { ASCII_HEX_DIGIT{4} }
-element_index             = { "-"? ~ ( "0" | '1'..'9' ~ ASCII_DIGIT* ) }
+index_selector                  = { "[" ~ ( quoted_member_name | element_index ) ~"]" }
+quoted_member_name              = { "\"" ~ double_quoted_string ~ "\"" | "'" ~ single_quoted_string ~ "'" }
+double_quoted_string            = { ( raw_double_quoted_string | escape )* }
+single_quoted_string            = { ( raw_single_quoted_string | escape )* }
+raw_double_quoted_string        = { (!("\\" | "\"") ~ ANY)+ }
+raw_single_quoted_string        = { (!("\\" | "'") ~ ANY)+ }
+escape                          = { "\\" ~ (predefined | unicode) }
+predefined                      = { "b" | "t" | "n" | "f" | "r" | "\"" | "'" | "/" | "\\" }
+unicode                         = { "u" ~ unicode_hex }
+unicode_hex                     = { ASCII_HEX_DIGIT{4} }
+element_index                   = { "-"? ~ ( "0" | '1'..'9' ~ ASCII_DIGIT* ) }
 
-index_wildcard_selector = { "[" ~ wildcard ~ "]" }
+index_wildcard_selector         = { "[" ~ wildcard ~ "]" }
 
-decendant_selector = { ".." ~ ( dot_member_name | index_selector | index_wildcard_selector | wildcard ) }
+decendant_selector              = { ".." ~ ( dot_member_name | index_selector | index_wildcard_selector | wildcard ) }
 
-union_selector = { "[" ~ union_member ~ ( "," ~ union_member )* ~ "]" }
-union_member = { quoted_member_name | element_index }
+union_selector                  = { "[" ~ union_member ~ ( "," ~ union_member )* ~ "]" }
+union_member                    = { quoted_member_name | element_index }
+
+array_slice_selector            = { "[" ~array_slice_start? ~":"  ~array_slice_end?  ~ ( ":" ~array_slice_step? )?  ~"]" }
+array_slice_start               = { "-"? ~ASCII_DIGIT+ }
+array_slice_end                 = { "-"? ~ASCII_DIGIT+ }
+array_slice_step                = { "-"? ~ASCII_DIGIT+ }
 
 // TODO
-array_slice_selector = { ANY }
-
-// TODO
-filter_selector = { ANY }
+filter_selector                 = { ANY }
