@@ -29,12 +29,12 @@ impl TestContext for Ctx {
         let ctx = Ctx {
             redis: Command::new("redis-server")
                 .arg("--save \"\"")
-                .arg(format!("--port {}", port))
-                .arg(format!("--loadmodule {}", module))
+                .arg(format!("--port {port}"))
+                .arg(format!("--loadmodule {module}"))
                 .stdout(Stdio::null())
                 .spawn()
                 .expect("failed to start redis"),
-            client: redis::Client::open(format!("redis://0.0.0.0:{}/", port))
+            client: redis::Client::open(format!("redis://0.0.0.0:{port}/"))
                 .expect("failed to create client"),
         };
 
