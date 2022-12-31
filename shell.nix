@@ -1,6 +1,7 @@
 let
-  rustOverlay = builtins.fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz";
-  pkgs = import <nixpkgs> {
+  nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/tags/22.11.tar.gz";
+  rustOverlay = fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz";
+  pkgs = import nixpkgs {
     overlays = [ (import rustOverlay) ];
   };
 in

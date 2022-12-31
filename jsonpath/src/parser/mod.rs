@@ -30,7 +30,7 @@ pub enum UnionMember {
 pub fn parse(source: &str) -> Result<Vec<Selector>, String> {
     let pairs = match JSONPathParser::parse(Rule::jsonpath, source) {
         Ok(v) => v,
-        Err(e) => return Err(format!("unable to parse: {}", e)),
+        Err(e) => return Err(format!("unable to parse: {e}")),
     };
     parse_pairs(pairs)
 }
@@ -144,7 +144,7 @@ fn member_name_from_quoted(pair: Pair<Rule>) -> Result<String, String> {
             }
             let escaped = match chars.next() {
                 Some(cc) => cc,
-                None => return Err(format!("invalid escape sequence: {}", s)),
+                None => return Err(format!("invalid escape sequence: {s}")),
             };
             let unescaped = match escaped {
                 'b' => '\u{0008}',
@@ -159,18 +159,18 @@ fn member_name_from_quoted(pair: Pair<Rule>) -> Result<String, String> {
                 'u' => {
                     let encoded: String = match chars.next_chunk::<4>() {
                         Ok(v) => v.iter().collect(),
-                        Err(_) => return Err(format!("invalid unicode sequence: {}", s)),
+                        Err(_) => return Err(format!("invalid unicode sequence: {s}")),
                     };
                     let code_point = match u32::from_str_radix(&encoded, 16) {
                         Ok(v) => v,
-                        Err(_) => return Err(format!("invalid unicode sequence: {}", s)),
+                        Err(_) => return Err(format!("invalid unicode sequence: {s}")),
                     };
                     match char::from_u32(code_point) {
                         Some(code_point_char) => code_point_char,
-                        None => return Err(format!("invalid unicode sequence: {}", s)),
+                        None => return Err(format!("invalid unicode sequence: {s}")),
                     }
                 }
-                _ => return Err(format!("invalid escape sequence: {}", s)),
+                _ => return Err(format!("invalid escape sequence: {s}")),
             };
             res.push(unescaped)
         }
@@ -320,7 +320,7 @@ mod tests {
         ]
         .iter()
         .for_each(|input| {
-            parse(input).expect_err(&format!("expected error parsing {}", input));
+            parse(input).expect_err(&format!("expected error parsing {input}"));
         })
     }
 }

@@ -1,0 +1,12 @@
+name: acceptance
+on: [pull_request]
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: nixbuild/nix-quick-install-action@v5
+    - run: nix-shell --run 'cargo fmt --all -- --check'
+    - run: nix-shell --run 'cargo clippy --bins --tests --examples --all -- -D warnings'
+    - run: nix-shell --run 'cargo build && REDIS_JSON_MODULE=$(pwd)/target/debug/librejson.so cargo test'
