@@ -363,6 +363,48 @@ pub fn matches(
                             })
                     })
                     .collect(),
+                parser::Selector::ArraySlice(start, end, step) => acc
+                    .into_iter()
+                    .flat_map(|(p, v)| {
+                        let mut col: Vec<(ConsPath, &Value)> = vec![];
+                        if let Some(array) = v.as_array() {
+                            let step = step.unwrap_or(1);
+                            let len = array.len() as isize;
+                            let start =
+                                start.unwrap_or(if step >= 0 { 0_isize } else { len - 1_isize });
+                            let end = end.unwrap_or({
+                                if step >= 0 {
+                                    array.len() as isize
+                                } else {
+                                    -len - 1
+                                }
+                            });
+                            let (lower, upper) = array_bounds(start, end, step, len);
+                            let mut i;
+                            if step > 0 {
+                                i = lower;
+                                while i < upper {
+                                    col.push((
+                                        cons!(p, PathSegment::ArrayIndex(i as usize)),
+                                        array.get(i as usize).unwrap(),
+                                    ));
+                                    i += step;
+                                }
+                            }
+                            if step < 0 {
+                                i = upper;
+                                while lower < i {
+                                    col.push((
+                                        cons!(p, PathSegment::ArrayIndex(i as usize)),
+                                        array.get(i as usize).unwrap(),
+                                    ));
+                                    i += step;
+                                }
+                            }
+                        }
+                        col
+                    })
+                    .collect(),
             })
         })
         .map(|paths| {
@@ -380,6 +422,27 @@ pub fn matches(
                 })
                 .collect()
         })
+}
+
+fn normalize_slice_bound(i: isize, len: isize) -> isize {
+    if i >= 0 {
+        i
+    } else {
+        len + i
+    }
+}
+
+fn array_bounds(start: isize, end: isize, step: isize, len: isize) -> (isize, isize) {
+    let n_start = normalize_slice_bound(start, len);
+    let n_end = normalize_slice_bound(end, len);
+
+    if step >= 0 {
+        (n_start.clamp(0, len), n_end.clamp(0, len))
+    } else {
+        // spec allow retuning -1, but after normalize , -ve values feel wrong
+        (n_end.clamp(-1, len - 1), n_start.clamp(-1, len - 1))
+        // (n_end.clamp(0, len - 1), n_start.clamp(0, len - 1))
+    }
 }
 
 fn wrapped_index(idx: isize, len: usize) -> Option<usize> {
@@ -457,6 +520,46 @@ mod tests {
                     Expectation {
                         path: "$.c[0,-4]",
                         expect: vec![&json!("1")],
+                    },
+                    Expectation {
+                        path: "$.c[0:1]",
+                        expect: vec![&json!("1")],
+                    },
+                    Expectation {
+                        path: "$.c[0:1:1]",
+                        expect: vec![&json!("1")],
+                    },
+                    Expectation {
+                        path: "$.c[0:1:0]",
+                        expect: vec![],
+                    },
+                    Expectation {
+                        path: "$.c[0:1:-1]",
+                        expect: vec![],
+                    },
+                    Expectation {
+                        path: "$.c[1:0:-1]",
+                        expect: vec![&json!("2")],
+                    },
+                    Expectation {
+                        path: "$.c[-1:1:-1]",
+                        expect: vec![&json!("3")],
+                    },
+                    Expectation {
+                        path: "$.c[-1:0:-1]",
+                        expect: vec![&json!("3"), &json!("2")],
+                    },
+                    Expectation {
+                        path: "$.c[-1:0:-1]",
+                        expect: vec![&json!("3"), &json!("2")],
+                    },
+                    Expectation {
+                        path: "$.c[-100:100:-1]",
+                        expect: vec![],
+                    },
+                    Expectation {
+                        path: "$.c[-100:100]",
+                        expect: vec![&json!("1"), &json!("2"), &json!("3")],
                     },
                 ],
             },

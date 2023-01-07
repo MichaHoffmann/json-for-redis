@@ -15,6 +15,7 @@ pub enum Selector {
     DotMemberName(String),
     Wildcard,
     ArrayIndex(isize),
+    ArraySlice(Option<isize>, Option<isize>, Option<isize>),
     DecendantDotMemberName(String),
     DecendantWildcard,
     DecendantArrayIndex(isize),
@@ -57,7 +58,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<Selector, String> {
         Rule::dot_wildcard_selector => Ok(Selector::Wildcard),
         Rule::index_selector => inner!(pair, parse_index_selector),
         Rule::index_wildcard_selector => Ok(Selector::Wildcard),
-        Rule::array_slice_selector => inner!(pair, parse_array_slice_selector),
+        Rule::array_slice_selector => parse_array_slice_selector(pair),
         Rule::decendant_selector => inner!(pair, parse_decendant_selector),
         Rule::union_selector => parse_union_selector(pair),
         Rule::filter_selector => inner!(pair, parse_filter_selector),
@@ -124,8 +125,25 @@ fn parse_union_selector(pair: Pair<Rule>) -> Result<Selector, String> {
     Ok(Selector::Union(children))
 }
 
+/// Try and parse out the array slice selecter bounds, there are a few edge cases where the parser
+/// accepts values which dont make any senese. but these will be handeled at higher levels.
 fn parse_array_slice_selector(pair: Pair<Rule>) -> Result<Selector, String> {
-    unimplemented(pair)
+    let mut start = None;
+    let mut end = None;
+    let mut step = None;
+
+    for inner in pair.into_inner() {
+        match (inner.as_rule(), inner.as_str().is_empty()) {
+            (Rule::array_slice_start, true) => start = None,
+            (Rule::array_slice_start, false) => start = Some(array_index(inner)?),
+            (Rule::array_slice_end, true) => end = None,
+            (Rule::array_slice_end, false) => end = Some(array_index(inner)?),
+            (Rule::array_slice_step, true) => step = None,
+            (Rule::array_slice_step, false) => step = Some(array_index(inner)?),
+            _ => unreachable!(),
+        };
+    }
+    Ok(Selector::ArraySlice(start, end, step))
 }
 
 fn parse_filter_selector(pair: Pair<Rule>) -> Result<Selector, String> {
@@ -179,8 +197,14 @@ fn member_name_from_quoted(pair: Pair<Rule>) -> Result<String, String> {
 }
 
 //TODO: check size
-fn array_index(pair: Pair<Rule>) -> Result<isize, String> {
-    match isize::from_str(pair.as_str()) {
+/// Useful for conversion from string to anything that implements FromStr. The main usecase for
+/// this is get usize, isize out of the string orself return an array
+fn array_index<T>(pair: Pair<Rule>) -> Result<T, String>
+where
+    T: FromStr,
+    T::Err: ToString,
+{
+    match T::from_str(pair.as_str()) {
         Ok(v) => Ok(v),
         Err(e) => Err(e.to_string()),
     }
@@ -290,6 +314,45 @@ mod tests {
                     ]),
                 ],
             },
+            Test {
+                input: r"$[::]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, None)],
+            },
+            Test {
+                input: r"$[:]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, None)],
+            },
+            Test {
+                input: r"$[1:1:1]",
+                expect: vec![
+                    Selector::Root,
+                    Selector::ArraySlice(Some(1), Some(1), Some(1)),
+                ],
+            },
+            Test {
+                input: r"$[1::1]",
+                expect: vec![Selector::Root, Selector::ArraySlice(Some(1), None, Some(1))],
+            },
+            Test {
+                input: r"$[::-1]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, Some(-1))],
+            },
+            Test {
+                input: r"$[::-00001]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, Some(-1))],
+            },
+            Test {
+                input: r"$[::00001]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, Some(1))],
+            },
+            Test {
+                input: r"$[::00001]",
+                expect: vec![Selector::Root, Selector::ArraySlice(None, None, Some(1))],
+            },
+            Test {
+                input: r"$[-1::]",
+                expect: vec![Selector::Root, Selector::ArraySlice(Some(-1), None, None)],
+            },
         ]
         .iter()
         .for_each(|test| {
@@ -317,6 +380,9 @@ mod tests {
             r#"$["\uXX"]"#,
             r#"$["\u001"]"#,
             r#"$["\uABCG"]"#,
+            "$[::-]",
+            "$[:-:]",
+            "$[-::]",
         ]
         .iter()
         .for_each(|input| {
